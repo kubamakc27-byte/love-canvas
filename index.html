@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Наш лист</title>
+<style>
+  :root { --rose:#e11d48; --ink:#1f2937; --soft:#fff1f2; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Georgia, "Times New Roman", serif; background: linear-gradient(180deg,#fff,#fff5f7); color:var(--ink); height:100dvh; display:flex; flex-direction:column; }
+  header { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:10px 12px; background:#fff; border-bottom:1px solid #fecdd3; flex-wrap:wrap; }
+  h1 { font-size:18px; margin:0; font-weight:500; letter-spacing:.04em; }
+  h1 span { color:var(--rose); }
+  .tools { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  button, select, input[type=color], input[type=range] { border:1px solid #fecdd3; background:#fff; border-radius:999px; padding:6px 10px; font:inherit; }
+  button.active { background:var(--rose); color:#fff; border-color:var(--rose); }
+  canvas { flex:1; width:100%; background:#fff; touch-action:none; cursor:crosshair; }
+  .hint { font-size:12px; color:#9f1239; padding:0 12px 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Наш <span>белый лист</span></h1>
+  <div class="tools">
+    <button id="brush" class="active">Кисть</button>
+    <button id="eraser">Ластик</button>
+    <button id="heart">Сердце</button>
+    <button id="text">Текст</button>
+    <button id="emoji">Смайл</button>
+    <input id="color" type="color" value="#e11d48">
+    <input id="size" type="range" min="1" max="40" value="4">
+    <button id="clear">Очистить</button>
+    <button id="save">Скачать</button>
+  </div>
+</header>
+<div class="hint">Рисуй пальцем или мышью. Чтобы вторая половинка увидела тот же лист в реальном времени — откройте вместе Excalidraw и пришлите ссылку. Этот файл — личный лист на устройстве.</div>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let tool = 'brush', drawing = false, color = '#e11d48', size = 4;
+const emojis = ['❤️','💕','😍','🥰','💋','🌹','✨','💖'];
+function resize(){
+  const img = canvas.toDataURL();
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight - document.querySelector('header').offsetHeight - 28;
+  const i = new Image(); i.onload = () => ctx.drawImage(i,0,0); i.src = img;
+}
+window.addEventListener('resize', resize); resize();
+function pos(e){
+  const r = canvas.getBoundingClientRect();
+  const p = e.touches ? e.touches[0] : e;
+  return {x: p.clientX - r.left, y: p.clientY - r.top};
+}
+function start(e){ e.preventDefault(); const p = pos(e); drawing = true;
+  if(tool==='heart'){ drawHeart(p.x,p.y); drawing=false; return; }
+  if(tool==='emoji'){ ctx.font = (size*6+16)+'px serif'; ctx.fillText(emojis[Math.floor(Math.random()*emojis.length)], p.x, p.y); drawing=false; return; }
+  if(tool==='text'){ const t = prompt('Текст для неё','Я тебя люблю'); if(t){ ctx.fillStyle=color; ctx.font=(size*4+18)+'px Georgia'; ctx.fillText(t,p.x,p.y);} drawing=false; return; }
+  ctx.beginPath(); ctx.moveTo(p.x,p.y);
+}
+function move(e){ if(!drawing) return; e.preventDefault(); const p = pos(e);
+  ctx.lineWidth = size; ctx.lineCap='round'; ctx.strokeStyle = tool==='eraser' ? '#ffffff' : color;
+  ctx.lineTo(p.x,p.y); ctx.stroke();
+}
+function end(){ drawing=false; }
+function drawHeart(x,y){
+  ctx.save(); ctx.fillStyle=color; ctx.translate(x,y); ctx.scale(size/8, size/8);
+  ctx.beginPath(); ctx.moveTo(0,10);
+  ctx.bezierCurveTo(-20,-10,-40,10,-20,30); ctx.bezierCurveTo(0,45,0,45,0,45);
+  ctx.bezierCurveTo(0,45,0,45,20,30); ctx.bezierCurveTo(40,10,20,-10,0,10);
+  ctx.fill(); ctx.restore();
+}
+canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
+canvas.addEventListener('touchstart', start, {passive:false}); canvas.addEventListener('touchmove', move, {passive:false}); window.addEventListener('touchend', end);
+document.getElementById('color').oninput = e => color = e.target.value;
+document.getElementById('size').oninput = e => size = +e.target.value;
+['brush','eraser','heart','text','emoji'].forEach(id => {
+  document.getElementById(id).onclick = () => { tool=id; document.querySelectorAll('.tools button').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); };
+});
+document.getElementById('clear').onclick = () => ctx.clearRect(0,0,canvas.width,canvas.height);
+document.getElementById('save').onclick = () => { const a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download='nash-list.png'; a.click(); };
+</script>
+</body>
+</html>
